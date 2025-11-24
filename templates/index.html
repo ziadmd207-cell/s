@@ -1,0 +1,63 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>Violence Detection System</title>
+  <style>
+    body{font-family: Arial; text-align:center; background:#f7f7f7; padding:20px;}
+    h1{color:#d32f2f;}
+    #status{font-size:22px; margin-top:12px;}
+    #video{border-radius:8px; box-shadow:0 2px 6px rgba(0,0,0,0.15);}
+  </style>
+</head>
+<body>
+  <h1>Violence Detection System</h1>
+  <video id="video" autoplay playsinline width="720"></video>
+  <div id="status">Loading...</div>
+
+  <script>
+    const video = document.getElementById('video');
+
+    // Access mobile camera
+    navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" }, audio: false })
+      .then(stream => { video.srcObject = stream; })
+      .catch(err => { alert(err); });
+
+    // Capture frames and send to server
+    const canvas = document.createElement('canvas');
+    const ctx = canvas.getContext('2d');
+
+    async function sendFrame(){
+      canvas.width = video.videoWidth;
+      canvas.height = video.videoHeight;
+      ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+      const dataUrl = canvas.toDataURL('image/jpeg');
+      await fetch('/upload_frame', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ frame: dataUrl })
+      });
+    }
+
+    async function pollStatus(){
+      const res = await fetch('/status');
+      const data = await res.json();
+      const labelEl = document.getElementById('status');
+      if(data.label === "Violent"){
+        labelEl.innerHTML = "⚠️ Violent behavior detected!";
+        labelEl.style.color = "red";
+      } else {
+        labelEl.innerHTML = "✅ Normal activity";
+        labelEl.style.color = "green";
+      }
+    }
+
+    setInterval(async () => {
+      if(video.readyState === video.HAVE_ENOUGH_DATA){
+        await sendFrame();
+        await pollStatus();
+      }
+    }, 200);
+  </script>
+</body>
+</html>
