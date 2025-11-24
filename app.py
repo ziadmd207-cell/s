@@ -10,13 +10,15 @@ import cv2
 import numpy as np
 import os
 import threading
+from waitress import serve  # أخف من Flask built-in server
 
 # -----------------------------
 # Config
 # -----------------------------
 MODEL_PATH = "best_vit_lstm.pt"
-DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-SEQ_LEN = 8
+DEVICE = torch.device("cpu")  # استخدام CPU فقط
+SEQ_LEN = 4  # تقليل طول التسلسل
+IMG_SIZE = 160  # تقليل حجم الصورة
 
 # -----------------------------
 # Flask app
@@ -61,7 +63,7 @@ model.eval()
 # -----------------------------
 transform = transforms.Compose([
     transforms.ToPILImage(),
-    transforms.Resize((224, 224)),
+    transforms.Resize((IMG_SIZE, IMG_SIZE)),
     transforms.ToTensor(),
     transforms.Normalize(mean=[0.5,0.5,0.5], std=[0.5,0.5,0.5])
 ])
@@ -92,7 +94,6 @@ def process_frame(frame_bgr):
         else:
             pred = 0
 
-    # Update label
     current_label = "Violent" if pred == 1 else "Non-Violent"
 
 # -----------------------------
@@ -119,16 +120,15 @@ def status():
     return jsonify({"label": current_label})
 
 # -----------------------------
-# Cleanup (لا توجد أصوات بعد الآن)
+# Cleanup
 # -----------------------------
 def _cleanup():
     pass
-
 atexit.register(_cleanup)
 
 # -----------------------------
-# Run
+# Run via Waitress (أخف)
 # -----------------------------
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 5000))
-    app.run(host="0.0.0.0", port=port)
+    serve(app, host="0.0.0.0", port=port)
