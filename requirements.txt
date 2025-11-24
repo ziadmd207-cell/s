@@ -1,7 +1,7 @@
 pillow
 Flask==2.3.3
 torch==2.9.1
-torchvision==0.20.1
+torchvision==0.24.1
 timm==0.9.3
 numpy==1.27.0
 opencv-python-headless==4.8.1.78
